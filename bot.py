@@ -1,4 +1,5 @@
 import asyncio
+from aiogram import F
 import sqlite3
 import re
 from datetime import datetime, timedelta
@@ -381,7 +382,7 @@ async def suggest(message: Message):
 
     text = generate_workout(row[0])
     await message.answer(text, reply_markup=suggest_kb)
-@dp.callback_query(lambda c: c.data == "suggest_retry")
+@dp.callback_query(F.data == "suggest_retry")
 async def suggest_retry(callback: CallbackQuery):
     db = get_db
     cur = db.cursor()
@@ -397,8 +398,9 @@ async def suggest_retry(callback: CallbackQuery):
     await callback.message.edit_text(text, reply_markup=suggest_kb)
 
 
-@dp.callback_query(lambda c: c.data == "suggest_done")
+@dp.callback_query(F.data == "suggest_done")
 async def suggest_done(callback: CallbackQuery):
+    await callback.answer("OK")
     uid = callback.from_user.id
     today = datetime.now().strftime("%Y-%m-%d")
 
