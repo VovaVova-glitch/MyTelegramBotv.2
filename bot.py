@@ -22,19 +22,19 @@ user_state = {}
 # ---------- UI ----------
 reminders_kb = InlineKeyboardMarkup(inline_keyboard=[
     [
-        InlineKeyboardButton(text="✅ Включить", callback_data="reminders_on"),
-        InlineKeyboardButton(text="❌ Выключить", callback_data="reminders_off")
+        InlineKeyboardButton(text="✅ Увімкнути", callback_data="reminders_on"),
+        InlineKeyboardButton(text="❌ Вимкнути", callback_data="reminders_off")
     ]
 ])
 reset_kb = InlineKeyboardMarkup(inline_keyboard=[
     [
-        InlineKeyboardButton(text="✅ Да", callback_data="reset_yes"),
-        InlineKeyboardButton(text="❌ Нет", callback_data="reset_no")
+        InlineKeyboardButton(text="✅ Так", callback_data="reset_yes"),
+        InlineKeyboardButton(text="❌ Ні", callback_data="reset_no")
     ]
 ])
 suggest_kb = InlineKeyboardMarkup(inline_keyboard=[
     [
-        InlineKeyboardButton(text = "✅ Сделал", callback_data="save_suggest")
+        InlineKeyboardButton(text = "✅ Виконав", callback_data="save_suggest")
     ]
 ])
 async def check_missed_days():
@@ -56,14 +56,14 @@ async def check_missed_days():
         cur.execute("SELECT 1 FROM workouts WHERE user_id=? AND date=?", (uid, yesterday))
         if not cur.fetchone():
             messages = [
-                "💪 Вчера пропустил тренировку?\nСегодня новый день! 🔥 /suggest",
-                "😴 Отдохнул вчера? Вернись в строй! /today", 
-                "⚡ Быстрый тест: /suggest → ✅ Сделал!"
+                "💪 Вчора пропустив тренування?\nСьогодні новий день! 🔥 /suggest",
+                "😴 Відпочив вчора? Повертайся до строю! /today", 
+                "⚡ Швидкий тест: /suggest → ✅ Виконав!"
             ]
             await bot.send_message(uid, random.choice(messages))
     
     db.close()
-    print("✅ Проверка пропусков завершена")
+    print("✅Перевірка пропущених днів виконана.")
 
 # ---------- DB ----------
 def get_db():
@@ -118,7 +118,7 @@ def init_db():
 def calc_calories(text: str) -> int:
     text = text.lower()
 
-    m = re.search(r'(\d+)\s*(мин|минут)', text)
+    m = re.search(r'(\d+)\s*(хв|хвилин)', text)
     if m:
         return int(m.group(1)) * 8  # ~8 ккал в минуту
 
@@ -145,7 +145,7 @@ def calculate_streak(dates):
 @dp.message(Command("reset"))
 async def reset_profile(message: Message):
     await message.answer(
-        "Удалить профиль и все данные?",
+        "Видалити профіль і всі дані?",
         reply_markup=reset_kb
     )
 
@@ -163,30 +163,30 @@ async def reset_yes(callback: CallbackQuery):
     db.commit()
     db.close()
 
-    await callback.message.edit_text("Профиль полностью удалён.")
+    await callback.message.edit_text("Профіль повністю видалено.")
 
 
 @dp.callback_query(lambda c: c.data == "reset_no")
 async def reset_no(callback: CallbackQuery):
-    await callback.message.edit_text("Отмена.")
+    await callback.message.edit_text("Скасування.")
 
 # ---------- COMMANDS ----------
 @dp.message(Command("start"))
 async def start(message: Message):
     await message.answer(
         "SportBot\n\n"
-        "/profile — профиль\n"
-        "/edit_profile — изменить профиль\n"
-        "/workout — записать тренировку\n"
-        "/today — сегодня\n"
+        "/profile — профіль\n"
+        "/edit_profile — змінити профіль\n"
+        "/workout — записати тренування\n"
+        "/today — сьогодні\n"
         "/stats — статистика\n"
-        "/weight — вес\n"
-        "/reset — удалить всё\n"
-        "/weight_stats — статистика веса\n"
-        "/suggest — предложить тренировку\n"
-        "/set_goal — установить цель на неделю\n"
-        "/reminders — напоминания\n"
-        "/goal — показать цель на неделю"
+        "/weight — вага\n"
+        "/reset — видалити все\n"
+        "/weight_stats — статистика ваги\n"
+        "/suggest — запропонувати тренування\n"
+        "/set_goal — встановити мету на тиждень\n"
+        "/reminders — нагадування\n"
+        "/goal — показати мету на тиждень"
     )
 
 
@@ -206,21 +206,21 @@ async def profile(message: Message):
     if not profile_row or not profile_row[0]:
         user_state[uid] = "profile"
         await message.answer(
-            "Введи профиль:\n"
-            "Рост, пол, цель\n"
-            "Пример: 165, м, набрать массу"
+            "Введи профіль:\n"
+            "Зріст, стать, мета\n"
+            "Приклад: 165, ч, набрати масу"
         )
         return
 
-    h, g, goal, current_weight = profile_row  # ← 4 переменные!
-    weight_text = f"{current_weight:.1f} кг" if current_weight and current_weight > 0 else "не указан"
+    h, g, goal, current_weight = profile_row  # ← 4 змінні!
+    weight_text = f"{current_weight:.1f} кг" if current_weight and current_weight > 0 else "не вказана"
 
     await message.answer(
-        f"👤 Профиль\n"
-        f"Рост: {h} см\n"
-        f"Пол: {g}\n"
-        f"Вес: {weight_text}\n"
-        f"Цель: {goal}"
+        f"👤 Профіль\n"
+        f"Зріст: {h} см\n"
+        f"Стать: {g}\n"
+        f"Вага: {weight_text}\n"
+        f"Мета: {goal}"
     )
 
 
@@ -228,16 +228,16 @@ async def profile(message: Message):
 async def edit_profile(message: Message):
     user_state[message.from_user.id] = "profile"
     await message.answer(
-        "Рост, пол, цель\n"
-        "Пример: 170, ж, похудеть"
+        "Зріст, стать, мета\n"
+        "Приклад: 170, ж, схуднути"
     )
 
 @dp.message(Command("set_goal"))
 async def set_goal(message: Message):
     user_state[message.from_user.id] = "weekly_goal"
     await message.answer(
-        "Введи цель на неделю (сколько дней тренировок)\n"
-        "Пример: 4"
+        "Введи мету на тиждень (кількість днів тренувань)\n"
+        "Приклад: 4"
     )
 
 @dp.message(Command("goal"))
@@ -254,7 +254,7 @@ async def goal(message: Message):
 
     if not row or not row[0] or row[0] < 1:
         db.close()
-        await message.answer("Цель не задана. Используй /set_goal")
+        await message.answer("Мета не задана. Використовуй /set_goal")
         return
 
     weekly_goal = int(row[0])
@@ -273,12 +273,12 @@ async def goal(message: Message):
     blocks_done = int(progress / 10)
     bar = "█" * blocks_done + "░" * (blocks_total - blocks_done)
 
-    status = "🔥 Отлично" if done >= weekly_goal else "⏳ Продолжай"
+    status = "🔥 Чудово" if done >= weekly_goal else "⏳ Продовжуй"
 
     await message.answer(
-        f"🎯 Цель недели: {weekly_goal}\n"
-        f"✅ Выполнено: {done}\n"
-        f"Прогресс: {progress}% {bar}\n"
+        f"🎯 Мета тижня: {weekly_goal}\n"
+        f"✅ Виконано: {done}\n"
+        f"Прогрес: {progress}% {bar}\n"
         f"{status}"
     )
 
@@ -294,13 +294,13 @@ async def reminders(message: Message):
     row = cur.fetchone()
     status = bool(row[0]) if row else True
 
-    status_text = "🔔 Включены" if status else "🔕 Выключены"
+    status_text = "🔔 Увімкнені" if status else "🔕 Вимкнені"
     
 
     await message.answer(
-        f"Напоминания при пропуске дня:\n\n"
+        f"Нагадування при пропуску дня:\n\n"
         f"Статус: {status_text}\n"
-        f"Выбери действие:",
+        f"Виберіть дію:",
         reply_markup=reminders_kb
     )
     db.close()
@@ -319,10 +319,10 @@ async def reminders_on(callback: CallbackQuery):
     db.close()
     
     await callback.message.edit_text(
-        "🔔 Напоминания ВКЛЮЧЕНЫ!\n\n"
-        "Получать мотивацию каждый день при пропуске тренировки? 💪"
+        "🔔 Нагадування УВІМКНЕНІ!\n\n"
+        "Отримувати мотивацію щодня при пропуску тренування? 💪"
     )
-    await callback.answer("Включено!")
+    await callback.answer("Увімкнено!")
 
 @dp.callback_query(lambda c: c.data == "reminders_off")
 async def reminders_off(callback: CallbackQuery):
@@ -338,10 +338,10 @@ async def reminders_off(callback: CallbackQuery):
     db.close()
     
     await callback.message.edit_text(
-        "🔕 Напоминания ВЫКЛЮЧЕНЫ\n\n"
-        "Ты босс, тренируйся по настроению! 😎"
+        "🔕 Нагадування ВИМКНЕНІ\n\n"
+        "Ти босс, тренуйся за настроєм! 😎"
     )
-    await callback.answer("Выключено!")
+    await callback.answer("Вимкнено!")
 @dp.message(Command("suggest"))
 async def suggest(message: Message):
     db = get_db()
@@ -353,30 +353,30 @@ async def suggest(message: Message):
     row = cur.fetchone()
     db.close()
     if not row or not row[0]:
-        await message.answer("Сначала установи цель в профиле (/profile).")
+        await message.answer("Спочатку встанови мету в профілі (/profile).")
         return
     goal = row[0].lower()
     if "наб" in goal:
         text = (
-            "💪 Тренировка на набор:\n"
-            "• Отжимания 4x15–20\n"
-            "• Приседания 4x25\n"
-            "• Выпады 3x12\n"
+            "💪 Тренування на набір маси:\n"
+            "• Відтискування 4x15–20\n"
+            "• Присідання 4x25\n"
+            "• Випади 3x12\n"
             "• Планка 3x40 сек"
         )
-    elif "похуд" in goal or "суш" in goal:
+    elif "схуд" in goal or "дієт" in goal:
         text = (
-            "🔥 Тренировка на жиросжигание:\n"
-            "• Бег 20–30 минут\n"
-            "• Бёрпи 3x12\n"
-            "• Прыжки 3x40 сек\n"
+            "🔥 Тренування на спалювання жиру:\n"
+            "• Біг 20–30 хвилин\n"
+            "• Бьорпі 3x12\n"
+            "• Стрибки 3x40 сек\n"
             "• Планка 3x30 сек"
         )
     else:
         text = (
-            "🏋️ Универсальная тренировка:\n"
-            "• Отжимания 3x15\n"
-            "• Приседания 3x20\n"
+            "🏋️ Універсальне тренування:\n"
+            "• Відтискування 3x15\n"
+            "• Присідання 3x20\n"
             "• Планка 3x30 сек"
         )
 
@@ -391,7 +391,7 @@ async def save_suggest(callback: CallbackQuery):
     db = get_db()
     cur = db.cursor()
 
-    # если сегодня уже есть тренировка — не дублируем
+    # якщо сьогодні вже є тренування — не дублюємо
     cur.execute(
         "SELECT 1 FROM workouts WHERE user_id=? AND date=? LIMIT 1",
         (uid, today)
@@ -407,9 +407,9 @@ async def save_suggest(callback: CallbackQuery):
                 )
 
         db.commit()
-        text = "✅ Тренировка сохранена\n🎯 День засчитан"
+        text = "✅ Тренування збережено\n🎯 День зараховано"
     else:
-        text = "ℹ️ Сегодня тренировка уже была засчитана"
+        text = "ℹ️ Сьогодні тренування вже була врахована"
 
     db.close()
 
@@ -422,16 +422,16 @@ async def save_suggest(callback: CallbackQuery):
 async def workout(message: Message):
     user_state[message.from_user.id] = "workout"
     await message.answer(
-        "Введи тренировку.\n"
-        "Можно через запятую:\n"
-        "Бег 30 минут, Отжимания 4x20"
+        "Введи тренування.\n"
+        "Можна через кому:\n"
+        "Біг 30 хвилин, Відтискування 4x20"
     )
 
 
 @dp.message(Command("weight"))
 async def weight(message: Message):
     user_state[message.from_user.id] = "weight"
-    await message.answer("Введи вес (кг)")
+    await message.answer("Введи вагу (кг)")
 
 
 @dp.message(Command("weight_stats"))
@@ -446,10 +446,10 @@ async def weight_stats(message: Message):
     db.close()
 
     if not rows:
-        await message.answer("Вес ещё не записывался.")
+        await message.answer("Вага ще не записувалася.")
         return
 
-    text = "⚖️ Вес (последние записи):\n"
+    text = "⚖️ Вага (останні записи):\n"
     for w, d in rows:
         text += f"{d}: {w} кг\n"
 
@@ -470,19 +470,15 @@ async def today(message: Message):
     db.close()
 
     if not rows:
-        await message.answer("Сегодня тренировок нет.")
+        await message.answer("Сьогодні тренувань немає.")
         return
 
     total_cal = sum(calc_calories(r[0]) for r in rows)
     text = "\n".join(f"• {r[0]}" for r in rows)
 
     await message.answer(
-        f"🏋️ Сегодня:\n{text}\n\n🔥 ~{total_cal} ккал"
+        f"🏋️ Сьогодні:\n{text}\n\n🔥 ~{total_cal} ккал"
     )
-@dp.message(Command("test_miss"))
-async def test_miss(message: Message):
-    await check_missed_days()
-    await message.answer("🧪 Тест пропусков запущен!")
 # ---------- STATS ----------
 @dp.message(Command("stats"))
 async def stats(message: Message):
@@ -498,7 +494,7 @@ async def stats(message: Message):
     db.close()
 
     if not rows:
-        await message.answer("Тренировок нет.")
+        await message.answer("Тренувань немає.")
         return
 
     dates = [d for d, _ in rows]
@@ -511,11 +507,11 @@ async def stats(message: Message):
 
     text = (
         f"📊 Статистика\n"
-        f"Тренировочных дней: {len(set(dates))}\n"
-        f"Серия: {streak}\n"
-        f"🔥 Калорий всего: ~{total_cal}\n"
-        f"🔥 За 7 дней: ~{week_cal}\n\n"
-        f"Последние:\n"
+        f"Днів тренування: {len(set(dates))}\n"
+        f"Серія: {streak}\n"
+        f"🔥 Калорій всього: ~{total_cal}\n"
+        f"🔥 За 7 днів: ~{week_cal}\n\n"
+        f"Останні:\n"
     )
 
     for d, t in rows[:5]:
@@ -544,7 +540,7 @@ async def handle_input(message: Message):
             db.commit()
             db.close()
 
-            await message.answer("Цель недели сохранена.")
+            await message.answer("Мета тижня збережена.")
             user_state.pop(uid)
         except:
             await message.answer("Введи число.")
@@ -568,7 +564,7 @@ async def handle_input(message: Message):
             db.commit()
             db.close()
 
-            await message.answer("Вес сохранён.")
+            await message.answer("Вагу збережено.")
             user_state.pop(uid)
         except:
             await message.answer("Введи число.")
@@ -579,10 +575,10 @@ async def handle_input(message: Message):
         try:
             h, g, goal = map(str.strip, message.text.split(",", 2))
             h = int(h)
-            if g.lower() == "м":
-                g += "ужской👨"
+            if g.lower() == "ч":
+                g += "оловік👨"
             elif g.lower() == "ж":
-                g += "енский👩"
+                g += "інка👩"
             db = get_db()
             cur = db.cursor()
             cur.execute(
@@ -595,10 +591,10 @@ async def handle_input(message: Message):
             db.commit()
             db.close()
 
-            await message.answer("Профиль сохранён.")
+            await message.answer("Профіль збережено.")
             user_state.pop(uid)
         except:
-            await message.answer("Формат: 165, м, цель")
+            await message.answer("Формат: 165, ч, мета")
 
 
     # WORKOUT
@@ -616,7 +612,7 @@ async def handle_input(message: Message):
         db.commit()
         db.close()
 
-        await message.answer(f"Сохранено: {len(exercises)}")
+        await message.answer(f"Збережено: {len(exercises)}")
         user_state.pop(uid)
 
 
@@ -624,22 +620,22 @@ async def handle_input(message: Message):
 async def main():
     init_db()
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(check_missed_days, 'cron', hour=9, minute=0)  # 9:00 ежедневно
+    scheduler.add_job(check_missed_days, 'cron', hour=9, minute=0)  # 9:00 кожноденно
     scheduler.start()
     await bot.set_my_commands([
         BotCommand(command="start", description="Запуск"),
-        BotCommand(command="profile", description="Профиль"),
-        BotCommand(command="edit_profile", description="Изменить профиль"),
-        BotCommand(command="workout", description="Тренировка"),
-        BotCommand(command="today", description="Сегодня"),
+        BotCommand(command="profile", description="Профіль"),
+        BotCommand(command="edit_profile", description="Змінити профіль"),
+        BotCommand(command="workout", description="Тренування"),
+        BotCommand(command="today", description="Сьогодні"),
         BotCommand(command="stats", description="Статистика"),
-        BotCommand(command="weight", description="Вес"),
-        BotCommand(command="reset", description="Удалить всё"),
-        BotCommand(command="weight_stats", description="Статистика веса"),
-        BotCommand(command="suggest", description="Предложить трениовку"),
-        BotCommand(command="set_goal", description="Установить цель на неделю"),
-        BotCommand(command="goal", description="Показать цель на неделю"),
-        BotCommand(command="reminders", description="Напоминания")
+        BotCommand(command="weight", description="Вага"),
+        BotCommand(command="reset", description="Видалити все"),
+        BotCommand(command="weight_stats", description="Статистика ваги"),
+        BotCommand(command="suggest", description="Запропонувати тренування"),
+        BotCommand(command="set_goal", description="Встановити мету на тиждень"),
+        BotCommand(command="goal", description="Показати мету на тиждень"),
+        BotCommand(command="reminders", description="Нагадування")
     ])
     await dp.start_polling(bot)
 
