@@ -584,9 +584,9 @@ async def handle_input(message: Message):
         try:
             h, g, goal = map(str.strip, message.text.split(",", 2))
             h = int(h)
-            if g.lower() == "ч":
+            if g.lower() == "ч" or g.lower() == "ч":
                 g += "оловік👨"
-            elif g.lower() == "ж":
+            elif g.lower() == "ж" or g.lower() == "ж":
                 g += "інка👩"
             db = get_db()
             cur = db.cursor()
