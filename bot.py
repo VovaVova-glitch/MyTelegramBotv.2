@@ -531,12 +531,20 @@ async def handle_input(message: Message):
     if state == "weekly_goal":
         try:
             goal = int(message.text)
+
             db = get_db()
             cur = db.cursor()
+
             cur.execute(
-                "UPDATE users SET weekly_goal=? WHERE user_id=?",
-                (goal, uid)
+                """
+                INSERT INTO users (user_id, weekly_goal)
+                VALUES (?, ?)
+                ON CONFLICT(user_id)
+                DO UPDATE SET weekly_goal=excluded.weekly_goal
+                """,
+                (uid, goal)
             )
+
             db.commit()
             db.close()
 
@@ -545,6 +553,7 @@ async def handle_input(message: Message):
         except:
             await message.answer("Введи число.")
         return
+
 
     # WEIGHT
     if state == "weight":
