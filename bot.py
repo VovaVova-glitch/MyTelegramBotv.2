@@ -384,7 +384,7 @@ async def suggest(message: Message):
     await message.answer(text, reply_markup=suggest_kb)
 @dp.callback_query(F.data == "suggest_retry")
 async def suggest_retry(callback: CallbackQuery):
-    db = get_db
+    db = get_db()
     cur = db.cursor()
     cur.execute("SELECT goal FROM users WHERE user_id=?", (callback.from_user.id,))
     row = cur.fetchone()
