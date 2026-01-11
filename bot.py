@@ -34,9 +34,34 @@ reset_kb = InlineKeyboardMarkup(inline_keyboard=[
 ])
 suggest_kb = InlineKeyboardMarkup(inline_keyboard=[
     [
-        InlineKeyboardButton(text = "✅ Виконав", callback_data="save_suggest")
+        InlineKeyboardButton(text = "✅ Виконав", callback_data="suggest_done"),
+        InlineKeyboardButton(text="🔁 Інша", callback_data="suggest_retry")
     ]
 ])
+def generate_workout(goal: str) -> str:
+    if "наб" in goal:
+        return (
+            "💪 Тренування на набір маси:\n"
+            "• Відтискування 4x15–20\n"
+            "• Присідання 4x25\n"
+            "• Випади 3x12\n"
+            "• Планка 3x40 сек"
+        )
+    elif "схуд" in goal or "дієт" in goal:
+        return (
+            "🔥 Тренування на спалювання жиру:\n"
+            "• Біг 20–30 хвилин\n"
+            "• Бьорпі 3x12\n"
+            "• Стрибки 3x40 сек\n"
+            "• Планка 3x30 сек"
+        )
+    else:
+        return (
+            "🏋️ Універсальне тренування:\n"
+            "• Відтискування 3x15\n"
+            "• Присідання 3x20\n"
+            "• Планка 3x30 сек"
+        )
 async def check_missed_days():
     db = get_db()
     cur = db.cursor()
@@ -346,43 +371,34 @@ async def reminders_off(callback: CallbackQuery):
 async def suggest(message: Message):
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        "SELECT goal FROM users WHERE user_id=?",
-        (message.from_user.id,)
-    )
+    cur.execute("SELECT goal FROM users WHERE user_id=?", (message.from_user.id,))
     row = cur.fetchone()
     db.close()
-    if not row or not row[0]:
-        await message.answer("Спочатку встанови мету в профілі (/profile).")
-        return
-    goal = row[0].lower()
-    if "наб" in goal:
-        text = (
-            "💪 Тренування на набір маси:\n"
-            "• Відтискування 4x15–20\n"
-            "• Присідання 4x25\n"
-            "• Випади 3x12\n"
-            "• Планка 3x40 сек"
-        )
-    elif "схуд" in goal or "дієт" in goal:
-        text = (
-            "🔥 Тренування на спалювання жиру:\n"
-            "• Біг 20–30 хвилин\n"
-            "• Бьорпі 3x12\n"
-            "• Стрибки 3x40 сек\n"
-            "• Планка 3x30 сек"
-        )
-    else:
-        text = (
-            "🏋️ Універсальне тренування:\n"
-            "• Відтискування 3x15\n"
-            "• Присідання 3x20\n"
-            "• Планка 3x30 сек"
-        )
 
+    if not row or not row[0]:
+        await message.answer("Спочатку задай мету в профілі (/profile).")
+        return
+
+    text = generate_workout(row[0])
     await message.answer(text, reply_markup=suggest_kb)
-@dp.callback_query(lambda c: c.data == "save_suggest")
-async def save_suggest(callback: CallbackQuery):
+@dp.callback_query(lambda c: c.data == "suggest_retry")
+async def suggest_retry(callback: CallbackQuery):
+    db = get_db
+    cur = db.cursor()
+    cur.execute("SELECT goal FROM users WHERE user_id=?", (callback.from_user.id,))
+    row = cur.fetchone()
+    db.close()
+
+    if not row or not row[0]:
+        await callback.answer("Немає мети", show_alert=True)
+        return
+
+    text = generate_workout(row[0])
+    await callback.message.edit_text(text, reply_markup=suggest_kb)
+
+
+@dp.callback_query(lambda c: c.data == "suggest_done")
+async def suggest_done(callback: CallbackQuery):
     uid = callback.from_user.id
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -391,31 +407,29 @@ async def save_suggest(callback: CallbackQuery):
     db = get_db()
     cur = db.cursor()
 
-    # якщо сьогодні вже є тренування — не дублюємо
     cur.execute(
-        "SELECT 1 FROM workouts WHERE user_id=? AND date=? LIMIT 1",
+        "SELECT 1 FROM workouts WHERE user_id=? AND date=?",
         (uid, today)
     )
-    exists = cur.fetchone()
+    if cur.fetchone():
+        db.close()
+        await callback.answer("Сьогодні вже зараховано")
+        return
 
-    if not exists:
-        for line in workout_text.split("\n"):
-            if line.startswith("•"):
-                cur.execute(
-                    "INSERT INTO workouts (user_id, text, date) VALUES (?, ?, ?)",
-                    (uid, line[2:], today)
-                )
+    for line in workout_text.split("\n"):
+        if line.startswith("•"):
+            cur.execute(
+                "INSERT INTO workouts (user_id, text, date) VALUES (?, ?, ?)",
+                (uid, line[2:], today)
+            )
 
-        db.commit()
-        text = "✅ Тренування збережено\n🎯 День зараховано"
-    else:
-        text = "ℹ️ Сьогодні тренування вже була врахована"
-
+    db.commit()
     db.close()
 
     await callback.message.edit_text(
-        callback.message.text + "\n\n" + text
+        callback.message.text + "\n\n✅ Тренування збережено"
     )
+
 
 
 @dp.message(Command("workout"))
