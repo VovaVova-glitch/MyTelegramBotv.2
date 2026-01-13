@@ -395,7 +395,9 @@ async def suggest_retry(callback: CallbackQuery):
         return
 
     text = generate_workout(row[0])
-    await callback.message.edit_text(text, reply_markup=suggest_kb)
+    await callback.message.answer(text, reply_markup=suggest_kb)
+    await callback.answer()
+
 
 
 @dp.callback_query(F.data == "suggest_done")
