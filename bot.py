@@ -81,7 +81,7 @@ def generate_workout(goal: str) -> str:
             "• Відтискування 3x12\n"
             "• Випади 3x12\n"
             "• Велосипед 3x30 сек\n"
-            "• Планка 3x40 сек"
+            "• Планка 3x40 сек"        
         ])
 
 async def check_missed_days():
