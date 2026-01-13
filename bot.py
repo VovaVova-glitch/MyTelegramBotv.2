@@ -423,7 +423,7 @@ async def suggest_retry(callback: CallbackQuery):
 
 @dp.callback_query(F.data == "suggest_done")
 async def suggest_done(callback: CallbackQuery):
-    await callback.answer("OK")
+    await callback.message.delete()
     uid = callback.from_user.id
     today = datetime.now().strftime("%Y-%m-%d")
 
