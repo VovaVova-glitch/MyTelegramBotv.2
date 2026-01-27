@@ -405,6 +405,7 @@ async def suggest(message: Message):
     await message.answer(text, reply_markup=suggest_kb)
 @dp.callback_query(F.data == "suggest_retry")
 async def suggest_retry(callback: CallbackQuery):
+    await callback.message.delete()
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT goal FROM users WHERE user_id=?", (callback.from_user.id,))
@@ -416,6 +417,7 @@ async def suggest_retry(callback: CallbackQuery):
         return
 
     text = generate_workout(row[0])
+    
     await callback.message.answer(text, reply_markup=suggest_kb)
     await callback.answer()
 
