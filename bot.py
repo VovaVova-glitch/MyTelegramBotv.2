@@ -21,6 +21,13 @@ dp = Dispatcher()
 user_state = {}
     
 # ---------- UI ----------
+main_menu = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="📅 Today", callback_data="today"),
+        InlineKeyboardButton(text="🎯 Цель", callback_data="goal"),
+        InlineKeyboardButton(text="👤 Профиль", callback_data="profile")
+    ]
+])
 reminders_kb = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="✅ Увімкнути", callback_data="reminders_on"),
@@ -83,6 +90,101 @@ def generate_workout(goal: str) -> str:
             "• Велосипед 3x30 сек\n"
             "• Планка 3x40 сек"        
         ])
+async def goal(message: Message):
+    uid = message.from_user.id
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute(
+        "SELECT weekly_goal FROM users WHERE user_id=?",
+        (uid,)
+    )
+    row = cur.fetchone()
+
+    if not row or not row[0] or row[0] < 1:
+        db.close()
+        await message.answer("Мета не задана. Використовуй /set_goal")
+        return
+
+    weekly_goal = int(row[0])
+
+    week_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+    cur.execute(
+        "SELECT COUNT(DISTINCT date) FROM workouts WHERE user_id=? AND date>=?",
+        (uid, week_ago)
+    )
+    done = cur.fetchone()[0] or 0
+    db.close()
+
+    progress = min(int(done / weekly_goal * 100), 100)
+
+    blocks_total = 10
+    blocks_done = int(progress / 10)
+    bar = "█" * blocks_done + "░" * (blocks_total - blocks_done)
+
+    status = "🔥 Чудово" if done >= weekly_goal else "⏳ Продовжуй"
+
+    await message.answer(
+        f"🎯 Мета тижня: {weekly_goal}\n"
+        f"✅ Виконано: {done}\n"
+        f"Прогрес: {progress}% {bar}\n"
+        f"{status}"
+    )    
+async def today(message: Message):
+    db = get_db()
+    cur = db.cursor()
+
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    cur.execute(
+        "SELECT text FROM workouts WHERE user_id=? AND date=?",
+        (message.from_user.id, today_date)
+    )
+    rows = cur.fetchall()
+    db.close()
+
+    if not rows:
+        await message.answer("Сьогодні тренувань немає.")
+        return
+
+    total_cal = sum(calc_calories(r[0]) for r in rows)
+    text = "\n".join(f"• {r[0]}" for r in rows)
+
+    await message.answer(
+        f"🏋️ Сьогодні:\n{text}\n\n🔥 ~{total_cal} ккал"
+    )
+
+async def profile(message: Message):
+    uid = message.from_user.id
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute(
+        "SELECT height, gender, goal, current_weight FROM users WHERE user_id=?",
+        (uid,)
+    )
+    profile_row = cur.fetchone()
+    db.close()
+
+    if not profile_row or not profile_row[0]:
+        user_state[uid] = "profile"
+        await message.answer(
+            "Введи профіль:\n"
+            "Зріст, стать, мета\n"
+            "Приклад: 165, ч, набрати масу"
+        )
+        return
+
+    h, g, goal, current_weight = profile_row  # ← 4 змінні!
+    weight_text = f"{current_weight:.1f} кг" if current_weight and current_weight > 0 else "не вказана"
+
+    await message.answer(
+        f"👤 Профіль\n"
+        f"Зріст: {h} см\n"
+        f"Стать: {g}\n"
+        f"Вага: {weight_text}\n"
+        f"Мета: {goal}"
+    )
+
 
 async def check_missed_days():
     db = get_db()
@@ -221,55 +323,9 @@ async def reset_no(callback: CallbackQuery):
 @dp.message(Command("start"))
 async def start(message: Message):
     await message.answer(
-        "SportBot\n\n"
-        "/profile — профіль\n"
-        "/edit_profile — змінити профіль\n"
-        "/workout — записати тренування\n"
-        "/today — сьогодні\n"
-        "/stats — статистика\n"
-        "/weight — вага\n"
-        "/reset — видалити все\n"
-        "/weight_stats — статистика ваги\n"
-        "/suggest — запропонувати тренування\n"
-        "/set_goal — встановити мету на тиждень\n"
-        "/reminders — нагадування\n"
-        "/goal — показати мету на тиждень"
+        "Выбери действие 👇",
+        reply_markup=main_menu
     )
-
-
-@dp.message(Command("profile"))
-async def profile(message: Message):
-    uid = message.from_user.id
-    db = get_db()
-    cur = db.cursor()
-
-    cur.execute(
-        "SELECT height, gender, goal, current_weight FROM users WHERE user_id=?",
-        (uid,)
-    )
-    profile_row = cur.fetchone()
-    db.close()
-
-    if not profile_row or not profile_row[0]:
-        user_state[uid] = "profile"
-        await message.answer(
-            "Введи профіль:\n"
-            "Зріст, стать, мета\n"
-            "Приклад: 165, ч, набрати масу"
-        )
-        return
-
-    h, g, goal, current_weight = profile_row  # ← 4 змінні!
-    weight_text = f"{current_weight:.1f} кг" if current_weight and current_weight > 0 else "не вказана"
-
-    await message.answer(
-        f"👤 Профіль\n"
-        f"Зріст: {h} см\n"
-        f"Стать: {g}\n"
-        f"Вага: {weight_text}\n"
-        f"Мета: {goal}"
-    )
-
 
 @dp.message(Command("edit_profile")) 
 async def edit_profile(message: Message):
@@ -287,47 +343,8 @@ async def set_goal(message: Message):
         "Приклад: 4"
     )
 
-@dp.message(Command("goal"))
-async def goal(message: Message):
-    uid = message.from_user.id
-    db = get_db()
-    cur = db.cursor()
 
-    cur.execute(
-        "SELECT weekly_goal FROM users WHERE user_id=?",
-        (uid,)
-    )
-    row = cur.fetchone()
 
-    if not row or not row[0] or row[0] < 1:
-        db.close()
-        await message.answer("Мета не задана. Використовуй /set_goal")
-        return
-
-    weekly_goal = int(row[0])
-
-    week_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
-    cur.execute(
-        "SELECT COUNT(DISTINCT date) FROM workouts WHERE user_id=? AND date>=?",
-        (uid, week_ago)
-    )
-    done = cur.fetchone()[0] or 0
-    db.close()
-
-    progress = min(int(done / weekly_goal * 100), 100)
-
-    blocks_total = 10
-    blocks_done = int(progress / 10)
-    bar = "█" * blocks_done + "░" * (blocks_total - blocks_done)
-
-    status = "🔥 Чудово" if done >= weekly_goal else "⏳ Продовжуй"
-
-    await message.answer(
-        f"🎯 Мета тижня: {weekly_goal}\n"
-        f"✅ Виконано: {done}\n"
-        f"Прогрес: {progress}% {bar}\n"
-        f"{status}"
-    )
 
 @dp.message(Command("reminders"))
 async def reminders(message: Message):
@@ -496,30 +513,6 @@ async def weight_stats(message: Message):
 
     await message.answer(text)
 
-# ---------- TODAY ----------
-@dp.message(Command("today"))
-async def today(message: Message):
-    db = get_db()
-    cur = db.cursor()
-
-    today_date = datetime.now().strftime("%Y-%m-%d")
-    cur.execute(
-        "SELECT text FROM workouts WHERE user_id=? AND date=?",
-        (message.from_user.id, today_date)
-    )
-    rows = cur.fetchall()
-    db.close()
-
-    if not rows:
-        await message.answer("Сьогодні тренувань немає.")
-        return
-
-    total_cal = sum(calc_calories(r[0]) for r in rows)
-    text = "\n".join(f"• {r[0]}" for r in rows)
-
-    await message.answer(
-        f"🏋️ Сьогодні:\n{text}\n\n🔥 ~{total_cal} ккал"
-    )
 # ---------- STATS ----------
 @dp.message(Command("stats"))
 async def stats(message: Message):
@@ -559,6 +552,20 @@ async def stats(message: Message):
         text += f"{d}: {t}\n"
 
     await message.answer(text)
+@dp.callback_query(F.data == "today")
+async def cb_today(call: CallbackQuery):
+    await call.message.delete()
+    await today(call.message)
+
+@dp.callback_query(F.data == "goal")
+async def cb_goal(call: CallbackQuery):
+    await call.message.delete()
+    await goal(call.message)
+
+@dp.callback_query(F.data == "profile")
+async def cb_profile(call: CallbackQuery):
+    await call.message.delete()
+    await profile(call.message)
 
 # ---------- INPUT ----------
 @dp.message()
