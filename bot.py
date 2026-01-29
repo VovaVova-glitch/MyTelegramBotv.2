@@ -570,8 +570,6 @@ async def cb_profile(call: CallbackQuery):
 # ---------- INPUT ----------
 @dp.message()
 async def handle_input(message: Message):
-    if message.text.startswith("/"):
-        return
 
     uid = message.from_user.id
     state = user_state.get(uid)
