@@ -651,10 +651,12 @@ async def handle_input(message: Message):
             )
             db.commit()
             db.close()
-
+            print("PROFILE INPUT:", message.text)
             await message.answer("Профіль збережено.")
             user_state.pop(uid)
-        except:
+            return
+        except Exception as e:
+            print(e)
             await message.answer("Формат: 165, ч, мета")
 
 
