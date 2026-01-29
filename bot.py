@@ -640,8 +640,14 @@ async def handle_input(message: Message):
             cur = db.cursor()
             cur.execute(
                 """
-                INSERT OR REPLACE INTO users (user_id, height, gender, goal)
+                INSERT INTO users (user_id, height, gender, goal)
                 VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id)
+                DO UPDATE SET
+                    height = excluded.height,
+                    gender = excluded.gender,
+                    goal = excluded.goal
+
                 """,
                 (uid, h, g.lower(), goal)
             )
