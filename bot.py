@@ -322,6 +322,19 @@ async def reset_no(callback: CallbackQuery):
 # ---------- COMMANDS ----------
 @dp.message(Command("start"))
 async def start(message: Message):
+    uid = message.from_user.id
+
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute(
+        "INSERT OR IGNORE INTO users (user_id) VALUES (?)",
+        (uid,)
+    )
+
+    db.commit()
+    db.close()
+
     await message.answer(
         "Выбери действие 👇",
         reply_markup=main_menu
